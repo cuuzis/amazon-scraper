@@ -87,7 +87,7 @@ class Main : Application() {
         } else {
             val price = itemsFound.first().select("span.s-price,span.a-offscreen")?.last()?.text()
             val title = itemsFound.first().select("h2.s-access-title")?.last()?.text()
-            outFile.println("$str,1,$price,$title")
+            outFile.println("$str,1,\"$price\",\"$title\"")
         }
     }
 }
