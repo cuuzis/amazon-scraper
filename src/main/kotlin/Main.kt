@@ -26,6 +26,8 @@ class Main : Application() {
         }
     }
 
+    private var stopped = true
+
     override fun start(primaryStage: Stage) {
         val rows = VBox()
         val webAddressTextField = TextField("https://www.amazon.com")
@@ -43,31 +45,40 @@ class Main : Application() {
 
 
         button.onAction = EventHandler {
-            val task = object : Task<Any>() {
-                override fun call() {
-                    button.isDisable = true
-                }
-                override fun run() {
-                    try {
-                        button.isDisable = true
-                        val inputFile = File("svitrkodi.txt")
-                        val searchCodes = inputFile.readLines()
-                        File("cenas.csv").printWriter().use { outFile ->
-                            searchCodes.forEach {
-                                searchString(it, webAddressTextField.text, textArea, outFile)
-                            }
-                        }
-                        textArea.appendText("Done\n")
-                    } catch (e: Exception) {
-                        val sw = StringWriter()
-                        e.printStackTrace(PrintWriter(sw))
-                        val exceptionAsString = sw.toString()
-                        textArea.appendText("$exceptionAsString\n")
+            if (stopped) {
+                button.text = "Stop"
+                val task = object : Task<Any>() {
+                    override fun call() {
                     }
-                    button.isDisable = false
+
+                    override fun run() {
+                        try {
+                            stopped = false
+                            val inputFile = File("svitrkodi.txt")
+                            val searchCodes = inputFile.readLines()
+                            File("cenas.csv").printWriter().use { outFile ->
+                                for (searchCode in searchCodes) {
+                                    searchString(searchCode, webAddressTextField.text, textArea, outFile)
+                                    if (stopped) {
+                                        return
+                                    }
+                                }
+                            }
+                            textArea.appendText("Done\n")
+                        } catch (e: Exception) {
+                            val sw = StringWriter()
+                            e.printStackTrace(PrintWriter(sw))
+                            val exceptionAsString = sw.toString()
+                            textArea.appendText("$exceptionAsString\n")
+                        }
+                        button.isDisable = false
+                    }
                 }
+                Thread(task).start()
+            } else {
+                stopped = true
+                button.text = "Run"
             }
-            Thread(task).start()
         }
     }
 
@@ -89,5 +100,10 @@ class Main : Application() {
             val title = itemsFound.first().select("h2.s-access-title")?.last()?.text()
             outFile.println("$str,1,\"$price\",\"$title\"")
         }
+    }
+
+    override fun stop() {
+        super.stop()
+        this.stopped = true
     }
 }
